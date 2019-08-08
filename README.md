@@ -1,2 +1,2 @@
 # PBT
-Population-Based Training (PBT) demo
+Population-Based Training (PBT) implementation
