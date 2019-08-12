@@ -32,7 +32,7 @@ import TD3, DDPG, OurDDPG
 import utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--population_size", default=2, type=int)  # population capacity
+parser.add_argument("--population_size", default=3, type=int)  # population capacity
 parser.add_argument("--policy_name", default="OurDDPG")  # policy name
 parser.add_argument("--env_name", default="BipedalWalker-v2")  # OpenAI gym environment name Pendulum-v0
 parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
