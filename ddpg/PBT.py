@@ -13,7 +13,7 @@
  ==========================================================================
 @author: Yekun Chai
 
-@license: School of Informatics, Edinburgh
+@license: CASIA
 
 @contact: chaiyekun@gmail.com
 
@@ -24,11 +24,12 @@
 @desc：       
                
 '''
-from collections import namedtuple
-import random, heapq, os, utils, gym, torch, argparse, logging, copy
+import gym, torch
+import random, heapq, os, argparse, logging, copy
 from tqdm import tqdm
 import numpy as np
 import TD3, DDPG, OurDDPG
+import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--population_size", default=2, type=int)  # population capacity
