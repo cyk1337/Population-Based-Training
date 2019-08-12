@@ -10,6 +10,7 @@ __pycache__/
 *.pth
 
 test/
+myDDPG/
 
 .ipynb_checkpoints/
 .idea/
