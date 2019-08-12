@@ -132,6 +132,7 @@ class Worker:
         """
         self.generation = generation
         logger.info("Starting to train worker-%d" % self.worker_id)
+        logger.debug(self.h)
         replay_buffer = utils.ReplayBuffer()
 
         # Evaluate untrained policy
@@ -313,7 +314,7 @@ def run(n_generation=3):
 
     pbt = PBT(population_size=3)
 
-    for g in range(n_generation):  # stop criterion
+    for g in range(1, n_generation + 1):  # stop criterion
         logger.info("Generation %d ..." % g)
         pbt.init_population()
         while pbt.worker_queue:
