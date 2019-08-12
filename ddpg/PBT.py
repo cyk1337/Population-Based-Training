@@ -300,6 +300,9 @@ class PBT:
     def add(self, performance, h, generation):
         self.P.add((performance, h, generation))
 
+    def select_optimal(self):
+        return sorted(self.P, key=lambda x: x[0])[-1]
+
 
 def run(n_generation=3):
     """
@@ -321,6 +324,7 @@ def run(n_generation=3):
         if pbt.ready_to_mutate():
             for worker in pbt.population:
                 pbt.expoit_n_explore(worker)
+    print(pbt.select_optimal())
 
 
 if __name__ == '__main__':
