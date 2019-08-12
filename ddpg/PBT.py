@@ -311,9 +311,7 @@ def run(n_generation=3):
     entry of PBT
     :return:
     """
-
     pbt = PBT(population_size=3)
-
     for g in range(1, n_generation + 1):  # stop criterion
         logger.info("Generation %d ..." % g)
         pbt.init_population()
