@@ -273,7 +273,7 @@ class PBT:
         if worker.worker_id in lower_quantiles:
             mutate_id = random.choice(upper_quantiles)
             mutate_worker = [worker for worker in self.population if worker.worker_id == mutate_id][0]
-            worker.agent.copy_weights(mutate_worker)  # copy weights
+            worker.agent.copy_weights(mutate_worker.agent)  # copy weights
             worker.agent.copy_hyperparams(mutate_worker.h)  # copy hyperparams
             worker.h = copy.deepcopy(mutate_worker.h)  # assign attributes worker.h
             # perturb h
