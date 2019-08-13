@@ -63,9 +63,9 @@ class DDPG(object):
 
     def copy_weights(self, another_agent):
         copy_weights_from_models(self.critic, another_agent.critic)
-        copy_weights_from_models(self.critic_target, another_agent.critic)
-        copy_weights_from_models(self.actor, another_agent.critic)
-        copy_weights_from_models(self.actor_target, another_agent.critic)
+        copy_weights_from_models(self.critic_target, another_agent.critic_target)
+        copy_weights_from_models(self.actor, another_agent.actor)
+        copy_weights_from_models(self.actor_target, another_agent.actor_target)
 
     def copy_hyperparams(self, new_h):
         # update lr
