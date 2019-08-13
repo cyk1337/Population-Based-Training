@@ -249,7 +249,7 @@ class PBT:
     def init_population(self):
         if not self.population:
             for worker_id in range(args.population_size):
-                h = Hyperparameter(worker_id + 1)
+                h = Hyperparameter(worker_id)
                 policy = OurDDPG.DDPG(state_dim, action_dim, max_action, ACTOR_LR=h.ACTOR_LEARNING_RATE,
                                       CRITIC_LR=h.CRITIC_LEARNING_RATE)
                 worker = Worker(worker_id=worker_id, h=h, agent=policy)
