@@ -1,3 +1,10 @@
+*.npy
+*.pth
+
+test/
+myDDPG/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -6,11 +13,6 @@ __pycache__/
 # C extensions
 *.so
 
-*.npy
-*.pth
-
-test/
-myDDPG/
 
 .ipynb_checkpoints/
 .idea/

@@ -25,21 +25,21 @@
                
 '''
 import gym, torch
-import random, heapq, os, argparse, logging, copy
+import random, heapq, os, argparse, logging, copy, queue
 from tqdm import tqdm
 import numpy as np
 import TD3, DDPG, OurDDPG
 import utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--population_size", default=5, type=int)  # population capacity
+parser.add_argument("--population_size", default=3, type=int)  # population capacity
 parser.add_argument("--policy_name", default="OurDDPG")  # policy name
 parser.add_argument("--env_name", default="BipedalWalker-v2")  # OpenAI gym environment name Pendulum-v0
 parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
 parser.add_argument("--start_timesteps", default=1e4,
                     type=int)  # How many time steps purely random policy is run for
 parser.add_argument("--eval_freq", default=5e3, type=float)  # How often (time steps) we evaluate
-parser.add_argument("--max_timesteps", default=1e5, type=float)  # Max time steps to run environment for
+parser.add_argument("--max_timesteps", default=1e1, type=float)  # Max time steps to run environment for
 parser.add_argument("--save_models", action="store_true", default=True)  # Whether or not models are saved
 parser.add_argument("--expl_noise", default=0.1, type=float)  # Std of Gaussian exploration noise
 parser.add_argument("--batch_size", default=100, type=int)  # Batch size for both actor and critic
@@ -84,13 +84,13 @@ class Hyperparameter:
         explore hyperparameters via perturbation
         :return:
         """
-        logger.debug("\n Call perturb hyperparams for worker-{}...".format(self.worker_id))
-        logger.debug("Before perturbation: " + self.__repr__())
+        # logger.debug("\r Call perturb hyperparams for worker-{}...".format(self.worker_id))
+        # logger.debug("Before perturbation: " + self.__repr__())
         self.BATCH_SIZE = int(self.BATCH_SIZE * self._mutate_factor)
         self.CRITIC_LEARNING_RATE *= self._mutate_factor
         self.ACTOR_LEARNING_RATE *= self._mutate_factor
         self.ACTION_NOISE_SCALE *= self._mutate_factor
-        print("After perturbation: " + self.__repr__())
+        # logger.debug("After perturbation: " + self.__repr__())
 
     @property
     def _mutate_factor(self):
@@ -245,9 +245,11 @@ class PBT:
     def __init__(self, population_size):
         self.size = population_size
         self.population = []
-        self.worker_queue = []
+        self.worker_queue = queue.Queue(self.size)
 
         self.P = set()
+        self.lower_quantiles = None
+        self.upper_quantiles = None
 
     def init_population(self):
         if not self.population:
@@ -257,10 +259,15 @@ class PBT:
                                       CRITIC_LR=h.CRITIC_LEARNING_RATE)
                 worker = Worker(worker_id=worker_id, h=h, agent=policy)
                 self.population.append(worker)
-        self.worker_queue = [worker.worker_id for worker in self.population]
+        for worker in self.population:
+            self.worker_queue.put(worker.worker_id)
 
     def ready_to_mutate(self):
-        return not self.worker_queue
+        if self.worker_queue.empty():
+            # logger.info("Ready to mutate ...")
+            self.lower_quantiles, self.upper_quantiles = self._quantiles(quantile_frac=.2)
+            return True
+        return False
 
     def expoit_n_explore(self, worker):
         """
@@ -272,9 +279,10 @@ class PBT:
             1. perturbation
         :return:
         """
-        lower_quantiles, upper_quantiles = self._quantiles(quantile_frac=.2)
-        if worker.worker_id in lower_quantiles:
-            mutate_id = random.choice(upper_quantiles)
+        assert self.lower_quantiles is not None
+
+        if worker.worker_id in self.lower_quantiles:
+            mutate_id = random.choice(self.upper_quantiles)
             mutate_worker = [worker for worker in self.population if worker.worker_id == mutate_id][0]
             worker.agent.copy_weights(mutate_worker.agent)  # copy weights
             worker.agent.copy_hyperparams(mutate_worker.h)  # copy hyperparams
@@ -297,7 +305,7 @@ class PBT:
         :param quantile_frac:
         :return:
         """
-        n = np.ceil(self.size * quantile_frac)
+        n = int(np.ceil(self.size * quantile_frac))
         lower_quantile = heapq.nsmallest(n, self.population, key=lambda x: x.performance)
         upper_quantile = heapq.nlargest(n, self.population, key=lambda x: x.performance)
         return [worker.worker_id for worker in lower_quantile], [worker.worker_id for worker in upper_quantile]
@@ -314,13 +322,13 @@ def run(n_generation=3):
     entry of PBT
     :return:
     """
-    pbt = PBT(population_size=3)
+    pbt = PBT(population_size=args.population_size)
     for g in range(1, n_generation + 1):  # stop criterion
         print("-" * 100)
         logger.info("Generation %d ..." % g)
         pbt.init_population()
-        while pbt.worker_queue:
-            worker_id = pbt.worker_queue.pop(0)
+        while not pbt.worker_queue.empty():
+            worker_id = pbt.worker_queue.get()
             worker = pbt.population[worker_id]
             worker.step(g)  # train worker individually
             # update Population
