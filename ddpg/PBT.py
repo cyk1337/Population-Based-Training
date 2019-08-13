@@ -32,7 +32,7 @@ import TD3, DDPG, OurDDPG
 import utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--population_size", default=3, type=int)  # population capacity
+parser.add_argument("--population_size", default=2, type=int)  # population capacity
 parser.add_argument("--policy_name", default="OurDDPG")  # policy name
 parser.add_argument("--env_name", default="BipedalWalker-v2")  # OpenAI gym environment name Pendulum-v0
 parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
@@ -272,7 +272,7 @@ class PBT:
         lower_quantiles, upper_quantiles = self._quantiles(quantile_frac=.2)
         if worker.worker_id in lower_quantiles:
             mutate_id = random.choice(upper_quantiles)
-            mutate_worker = [worker for worker in self.population if worker.worker_id == mutate_id]
+            mutate_worker = [worker for worker in self.population if worker.worker_id == mutate_id][0]
             worker.agent.copy_weights(mutate_worker)  # copy weights
             worker.agent.copy_hyperparams(mutate_worker.h)  # copy hyperparams
             worker.h = copy.deepcopy(mutate_worker.h)  # assign attributes worker.h
