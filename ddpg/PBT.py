@@ -32,7 +32,7 @@ import TD3, DDPG, OurDDPG
 import utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--population_size", default=2, type=int)  # population capacity
+parser.add_argument("--population_size", default=5, type=int)  # population capacity
 parser.add_argument("--policy_name", default="OurDDPG")  # policy name
 parser.add_argument("--env_name", default="BipedalWalker-v2")  # OpenAI gym environment name Pendulum-v0
 parser.add_argument("--seed", default=0, type=int)  # Sets Gym, PyTorch and Numpy seeds
@@ -57,6 +57,7 @@ if args.save_models and not os.path.exists("./pytorch_models"):
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - "%(name)s" - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 # env
 env = gym.make(args.env_name)
 
@@ -83,10 +84,13 @@ class Hyperparameter:
         explore hyperparameters via perturbation
         :return:
         """
+        logger.debug("\n Call perturb hyperparams for worker-{}...".format(self.worker_id))
+        logger.debug("Before perturbation: " + self.__repr__())
         self.BATCH_SIZE = int(self.BATCH_SIZE * self._mutate_factor)
         self.CRITIC_LEARNING_RATE *= self._mutate_factor
         self.ACTOR_LEARNING_RATE *= self._mutate_factor
         self.ACTION_NOISE_SCALE *= self._mutate_factor
+        print("After perturbation: " + self.__repr__())
 
     @property
     def _mutate_factor(self):
@@ -111,18 +115,16 @@ class Worker:
         self.worker_id = worker_id
         self.h = h
         self.agent = agent
-
-        self.optim = None
         self.max_t = max_t
 
-        self.generation = None
+        # self.optim = None
 
+        self.generation = None
         self.reset()
 
     def reset(self):
         self.t = 0
         self.evaluations = None
-        self.ready_to_mutate = False  # flag to mutate
         self.performance = None
 
     def step(self, generation):
@@ -200,7 +202,6 @@ class Worker:
             episode_timesteps += 1
             timesteps_since_eval += 1
         self.t += total_timesteps
-        self.ready_to_mutate = True
         self.eval()
         np.save("./results/%s" % (self.__repr__()), self.evaluations)
 
@@ -209,8 +210,10 @@ class Worker:
         evaluate the performance of the agent
         :return:
         """
-        self.performance = self._evaluate_policy()
+        eval_episodes = 10
+        self.performance = self._evaluate_policy(eval_episodes)
         self.evaluations.append(self.performance)
+        logger.info("Evaluation over %d episodes: %f" % (eval_episodes, self.performance))
 
         if save_models:
             self.agent.save("%s" % (self.__repr__()), directory="./pytorch_models")
@@ -300,7 +303,7 @@ class PBT:
         return [worker.worker_id for worker in lower_quantile], [worker.worker_id for worker in upper_quantile]
 
     def add(self, performance, h, generation):
-        self.P.add((performance, h, generation))
+        self.P.add((performance, h, "Gen-{}".format(generation)))
 
     def select_optimal(self):
         return sorted(self.P, key=lambda x: x[0])[-1]
@@ -313,6 +316,7 @@ def run(n_generation=3):
     """
     pbt = PBT(population_size=3)
     for g in range(1, n_generation + 1):  # stop criterion
+        print("-" * 100)
         logger.info("Generation %d ..." % g)
         pbt.init_population()
         while pbt.worker_queue:
